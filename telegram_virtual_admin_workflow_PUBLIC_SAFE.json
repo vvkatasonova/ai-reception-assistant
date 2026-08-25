@@ -1,0 +1,2294 @@
+{
+  "name": "INFO 666",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "ad95cf8e-488f-4491-83d4-ac681da3c1d5",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -1360,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.message.voice.file_id }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Voice"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "8c844924-b2ed-48b0-935c-c66a8fd0c778",
+                    "leftValue": "={{ $json.message.text }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Text"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "11a0a3cb-6f4f-4e89-b16e-e8e680b20cb6",
+      "name": "Switch",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -784,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ $json.reply_text ?? $json.agent?.reply ?? $json.message ?? $json.text ?? 'Ок' }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "d4b5a9b5-5794-4319-b040-55725fc5b2ae",
+      "name": "Response",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1920,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $json.message.voice.file_id }}",
+        "additionalFields": {}
+      },
+      "id": "87f8074b-d773-425d-9244-4381409cbc4d",
+      "name": "Download File",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -528,
+        32
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "transcribe",
+        "options": {}
+      },
+      "id": "1fd0e4c7-9d32-484c-97be-ec6890e9a94d",
+      "name": "Transcribe",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.6,
+      "position": [
+        -384,
+        32
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        400,
+        768
+      ],
+      "id": "ae22e103-29db-48c3-bd13-84ba504cec21",
+      "name": "Embeddings OpenAI"
+    },
+    {
+      "parameters": {
+        "tableId": "chat_logs",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "session_id",
+              "fieldValue": "={{ $('Set Final Text').item.json.sessionId }}"
+            },
+            {
+              "fieldId": "user_id",
+              "fieldValue": "={{ $('Set Final Text').item.json.user_id }}"
+            },
+            {
+              "fieldId": "username",
+              "fieldValue": "={{ $('Set Final Text').item.json.username }}"
+            },
+            {
+              "fieldId": "role",
+              "fieldValue": "assistant"
+            },
+            {
+              "fieldId": "content",
+              "fieldValue": "={{ $('ИНФО АГЕНТ').item.json.output }}"
+            },
+            {
+              "fieldId": "metadata",
+              "fieldValue": "={{ JSON.stringify($('Set Final Text').item.json.update || $('Set Final Text').item.json) }}"
+            },
+            {
+              "fieldId": "first_name",
+              "fieldValue": "={{ $('Set Final Text').item.json.first_name }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2144,
+        288
+      ],
+      "id": "a4bcc114-cd3f-4c27-acea-57cb0b2b6b2b",
+      "name": "Save Bot Message",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Set Final Text').item.json.text }}",
+        "options": {
+          "systemMessage": "You are a virtual administrator of a beauty salon.\n\nYou represent a real salon called \"Beauty salon\".\nYour name is Юлія.\nYou are NOT an AI assistant, NOT a consultant, and NOT a technical system.\nYou communicate as a real human salon administrator.\n\nYour main role is to communicate with clients in messengers, answer their questions clearly and politely, and help them understand salon services, prices, and general rules.\n\nIMPORTANT RULES:\n\n- You do NOT invent information.\n- You ONLY use factual information from the knowledge base via the DATA_TOOL.\n- If the answer cannot be found in the knowledge base or the request is unusual, you must ask the client to wait and request human assistance.\n- Never explain internal logic, AI processes, databases, or tools.\n\nYOUR GOALS:\n\n1. Help clients understand:\n   - what services the salon provides\n   - approximate prices\n   - general rules (booking, cancellation, payments)\n   - what to expect from procedures\n\n2. Communicate in a friendly, calm, and professional manner.\n3. Make the client feel welcome and cared for.\n4. Avoid medical advice, diagnoses, or guarantees.\n\nCONVERSATION BEHAVIOR:\n\n- Answer clearly and to the point.\n- Keep messages short and natural.\n- Do not overload responses with details.\n- Do not ask technical or business questions.\n- Use максимум 1–2 emojis.\n- If the question is outside standard information, politely say that you will clarify it with a specialist.\n\nHUMAN HANDOFF RULES:\n\nYou must request human assistance if:\n- the client mentions allergies, medical conditions, pregnancy, or contraindications\n- the request is unusual or very specific\n- the client is dissatisfied or complains\n- the client asks for exceptions to rules or special conditions\n- you are not confident in the answer based on the knowledge base\n\nIn such cases, respond politely and ask the client to wait.\n\nGREETING RULES:\n\nWhen the user sends /start or greets for the first time:\n- Introduce yourself as a salon administrator\n- Mention the salon name\n- Mention your name (Юлія)\n- Keep it warm and short\n- Do not ask many questions\n\nGreeting example:\n\"Вітаю 💛 Я Юлія, адміністратор Beauty salon. Чим можу допомогти? 😊\"\n\nLANGUAGE & STYLE:\n\n- Always respond in Ukrainian\n- Simple, natural language\n- Friendly, warm, human\n- Telegram-style messages\n\n────────────────────────────\nCRITICAL RESPONSE FORMAT RULE (STRICT)\n────────────────────────────\n\nYou must ALWAYS return exactly ONE valid JSON object.\nDo not add any text before or after.\nDo not wrap the JSON in code fences.\n\nIf you can answer confidently:\n\n{\n  \"type\": \"ai\",\n  \"reply\": \"Ваша відповідь клієнту українською мовою\",\n  \"service_tag\": \"<massage | manicure | brows_lashes | unknown>\"\n}\n\nIf human assistance is required:\n\n{\n  \"type\": \"handoff\",\n  \"reply\": \"Будь ласка, зачекайте хвилинку, я уточню це у спеціаліста 💛\",\n  \"reason\": \"short reason\",\n  \"service_tag\": \"unknown\"\n}\n\n────────────────────────────\nSERVICE TAG RULES (VERY IMPORTANT)\n────────────────────────────\n\nYou must ALWAYS determine service_tag based on the client message.\n\nUse ONLY one of the following values:\n\n- massage → massage, масаж, спина, шия, релакс, антицелюлітний\n- manicure → манікюр, педикюр, нігті, гель-лак, покриття, зняття\n- brows_lashes → брови, вії, ламінування, фарбування, корекція, нарощування\n- unknown → if the service is not mentioned or unclear\n\nRules:\n- Do NOT guess.\n- If you are not sure — use \"unknown\".\n- service_tag must ALWAYS be present in the JSON.\n\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        160,
+        192
+      ],
+      "id": "6f9dd868-ccc6-4730-9f02-73bd49f16388",
+      "name": "ИНФО АГЕНТ",
+      "retryOnFail": false
+    },
+    {
+      "parameters": {
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1,
+      "position": [
+        560,
+        592
+      ],
+      "id": "2482fa0c-a171-4b76-a041-173ac1674717",
+      "name": "DATA BASE"
+    },
+    {
+      "parameters": {
+        "name": "documents",
+        "description": "This database contains official information about the beauty salon.\n\nIt includes:\n- general information about the salon\n- services and prices\n- booking and cancellation rules\n- answers to frequently asked questions\n\nUse ONLY information from the database.\nDo not invent or assume details.\nIf information is missing or unclear, notify the agent.",
+        "topK": "=30"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolVectorStore",
+      "typeVersion": 1,
+      "position": [
+        640,
+        400
+      ],
+      "id": "fbd896a6-6d95-43f8-b0dd-111287ea86cf",
+      "name": "DATA_TOOL"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.session_id }}",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        416,
+        416
+      ],
+      "id": "8b84ae30-a9f2-418f-936d-29d32a25416e",
+      "name": "ВРЕМЕННАЯ ПАМЯТЬ 1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/sendChatAction",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"chat_id\": {{ $('Telegram Trigger').item.json.message.chat.id }},\n  \"action\": \"typing\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        192,
+        -240
+      ],
+      "id": "58211886-ef05-4812-9146-bc012306e7b5",
+      "name": "Typing 1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "fe7ecc99-e1e8-4a5e-bdd6-6fce9757b234",
+              "name": "text",
+              "value": "={{ $json.text || $json.message.text }}",
+              "type": "string"
+            },
+            {
+              "id": "8386c97a-d1b9-4000-9e17-86c2158e91af",
+              "name": "sessionId",
+              "value": "={{ 'user_' + $('Switch').item.json.message.from.id }}",
+              "type": "string"
+            },
+            {
+              "id": "877d9358-6785-4299-be83-7c78fd41924f",
+              "name": "user_id",
+              "value": "={{ $('Telegram Trigger').item.json.message.from.id }}",
+              "type": "string"
+            },
+            {
+              "id": "c58ae87e-c307-4af6-945f-bb8350aafc3d",
+              "name": "username",
+              "value": "={{ $('Telegram Trigger').item.json.message.from.username }}",
+              "type": "string"
+            },
+            {
+              "id": "a44439db-9b02-4093-9cc9-19af6c9e1a3c",
+              "name": "first_name",
+              "value": "={{ $('Telegram Trigger').item.json.message.from.first_name }}",
+              "type": "string"
+            },
+            {
+              "id": "d65b621c-b717-408d-b88c-20690ebb9b90",
+              "name": "update",
+              "value": "={{ $('Telegram Trigger').item.json }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "edd82491-a80e-4ffb-9c4e-aced2f9b2414",
+      "name": "Set Final Text",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -544,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        848,
+        512
+      ],
+      "id": "a5f0a89d-8d70-47a4-94a5-55bbda6659cc",
+      "name": "4o-mini"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "caddfbff-5f75-4690-91bb-b6430350a6e4",
+              "name": "message",
+              "value": "={{$json.agent.reply}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1120,
+        288
+      ],
+      "id": "aa7da564-4905-434d-a35c-f55fbcd796f2",
+      "name": "Edit Fields",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        256,
+        416
+      ],
+      "id": "fbb12daf-5f05-4c54-8712-4b2883d51316",
+      "name": "OpenAI Chat Model"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1) Берём сырой текст от агента\nconst raw =\n  $json?.output ??\n  $json?.text ??\n  $json?.response ??\n  $json?.message ??\n  $json?.data?.text ??\n  $json?.data ??\n  $json;\n\nconst rawStr = typeof raw === \"string\" ? raw : JSON.stringify(raw);\n\n// 2) Пытаемся найти 1+ JSON объектов в строке и взять последний валидный\nlet agent = null;\n\n// Разобьём по строкам и попробуем распарсить каждую строку как JSON\nconst lines = rawStr\n  .split(/\\n+/)\n  .map(s => s.trim())\n  .filter(s => s.startsWith(\"{\") && s.endsWith(\"}\"));\n\nfor (const s of lines) {\n  try {\n    const obj = JSON.parse(s);\n    if (obj && obj.type && obj.reply) agent = obj; // берём последний подходящий\n  } catch (e) {}\n}\n\n// Если не нашли по строкам — пробуем вытащить JSON-объекты regex-ом\nif (!agent) {\n  const matches = rawStr.match(/\\{[\\s\\S]*?\\}/g) || [];\n  for (const s of matches) {\n    try {\n      const obj = JSON.parse(s);\n      if (obj && obj.type && obj.reply) agent = obj;\n    } catch (e) {}\n  }\n}\n\n// Если всё равно не получилось — падаем с понятной ошибкой\nif (!agent) {\n  throw new Error(\"Не смогла вытащить JSON от агента. rawStr=\" + rawStr);\n}\n\n// 3) Достаём service_tag (если агент его вернул)\nlet service_tag = agent.service_tag;\n\nif (!service_tag) {\n  // запасной вариант: если агент добавил строку SERVICE_TAG: manicure\n  const m = rawStr.match(/SERVICE_TAG:\\s*(massage|manicure|brows_lashes|unknown)/i);\n  if (m) service_tag = m[1].toLowerCase();\n}\n\nif (!service_tag) service_tag = \"unknown\";\n\n// 4) Возвращаем в поток удобные поля\nreturn [{ ...$json, agent, rawStr, service_tag }];\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        192
+      ],
+      "id": "2adf17bb-74d5-441f-a85a-d78bcb300775",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "5f934582-b822-44d3-91fe-4163bed40b21",
+              "leftValue": "={{$json.agent.type}}",
+              "rightValue": "handoff",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        672,
+        192
+      ],
+      "id": "641a174e-052b-4267-9c5d-a25cb66cdac5",
+      "name": "If",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{$json.agent.reply}}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        864,
+        -32
+      ],
+      "id": "f57b97b7-fe30-43f8-857e-c7c235e9087b",
+      "name": "Send a text message",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "tableId": "tickets",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "status",
+              "fieldValue": "open"
+            },
+            {
+              "fieldId": "client_chat_id",
+              "fieldValue": "={{$node[\"Telegram Trigger\"].json[\"message\"][\"chat\"][\"id\"]}}"
+            },
+            {
+              "fieldId": "=client_message",
+              "fieldValue": "={{$node[\"Set Final Text\"].json[\"text\"]}}"
+            },
+            {
+              "fieldId": "handoff_reason",
+              "fieldValue": "={{$node[\"Code in JavaScript\"].json[\"agent\"][\"reason\"]}}"
+            },
+            {
+              "fieldId": "staff_chat_id",
+              "fieldValue": "<STAFF_CHAT_ID>"
+            },
+            {
+              "fieldId": "client_username",
+              "fieldValue": "={{$node[\"Telegram Trigger\"].json[\"message\"][\"from\"][\"username\"]}}"
+            },
+            {
+              "fieldId": "client_first_name",
+              "fieldValue": "={{$node[\"Telegram Trigger\"].json[\"message\"][\"from\"][\"first_name\"]}}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1088,
+        -32
+      ],
+      "id": "1320392f-3ee8-42c0-9a59-beeedb8de3a0",
+      "name": "Create a row",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "chatId": "=<STAFF_CHAT_ID>",
+        "text": "=🆘 Потрібна допомога адміністратора\nTicket: {{$node[\"Create a row\"].json[\"id\"]}}\nКлієнт: \n{{ $node[\"Create a row\"].json[\"client_username\"]\n  ? \"@\" + $node[\"Create a row\"].json[\"client_username\"]\n  : $node[\"Create a row\"].json[\"client_first_name\"] }}\n(ID: {{$node[\"Create a row\"].json[\"client_chat_id\"]}})\n\nПитання: {{$node[\"Create a row\"].json[\"client_message\"]}}\nПричина: {{$node[\"Create a row\"].json[\"handoff_reason\"]}}\n\nВідповідайте реплаєм на це повідомлення ✅",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1296,
+        -32
+      ],
+      "id": "89ba0f45-52f9-4745-bf23-e3894789fa63",
+      "name": "Send a text message1",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "tickets",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $node[\"Create a row\"].json[\"id\"] }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "staff_message_id",
+              "fieldValue": "={{$node[\"Send a text message1\"].json[\"result\"][\"message_id\"]}}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1504,
+        -32
+      ],
+      "id": "5df6d3d1-ead5-43c9-b7d3-225adf2f8004",
+      "name": "Update a row",
+      "disabled": true
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        -592,
+        -224
+      ],
+      "id": "403c3b60-933d-4b14-a9f9-bdaac7c56b74",
+      "name": "No Operation, do nothing1"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.client_chat_id }}",
+        "text": "=Отримала уточнення 💛\n\n{{ $node[\"Telegram Trigger\"].json[\"message\"][\"text\"] }}\n",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -320,
+        -400
+      ],
+      "id": "9642e2e6-e79f-49c8-bc31-fcaf4091204f",
+      "name": "Send a text message2"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "tickets",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{$items(\"Get many rows1\")[0].json.id}}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "status",
+              "fieldValue": "closed"
+            },
+            {
+              "fieldId": "staff_reply",
+              "fieldValue": "={{$node[\"Telegram Trigger\"].json[\"message\"][\"text\"]}}"
+            },
+            {
+              "fieldId": "answered_at",
+              "fieldValue": "={{$now.toISO()}}"
+            },
+            {
+              "fieldId": "staff_username",
+              "fieldValue": "={{$node[\"Telegram Trigger\"].json[\"message\"][\"from\"][\"username\"]}}"
+            },
+            {
+              "fieldId": "staff_first_name",
+              "fieldValue": "={{$node[\"Telegram Trigger\"].json[\"message\"][\"from\"][\"first_name\"]}}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -96,
+        -400
+      ],
+      "id": "b04c1ba1-c18c-4a56-9c88-e62ea396da67",
+      "name": "Update a row1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "2d161c6f-6b60-4641-a7fd-0566419d4cd6",
+              "leftValue": "={{$json.message.chat.id}}",
+              "rightValue": "<STAFF_CHAT_ID>",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "56f34281-aade-455d-8ef7-9a5bb221045c",
+              "leftValue": "=={{ !!$json.message.reply_to_message }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "5f1fa2d7-437e-4f3f-be66-07bd11930744",
+              "leftValue": "={{$node[\"Telegram Trigger\"].json[\"message\"][\"reply_to_message\"][\"message_id\"]}}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1104,
+        208
+      ],
+      "id": "1b610679-a349-4678-b371-3fba2ad980b8",
+      "name": "это сообщение из staff-чата?"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "55004e62-046d-49e9-aa19-b52586949281",
+              "leftValue": "={{ !!$json.message.reply_to_message }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -880,
+        -288
+      ],
+      "id": "2368c6d6-ccd2-45f8-90d0-6e5e85d8855c",
+      "name": "If2"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "tickets",
+        "limit": 1,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "staff_chat_id",
+              "condition": "eq",
+              "keyValue": "={{$node[\"Telegram Trigger\"].json[\"message\"][\"chat\"][\"id\"]}}"
+            },
+            {
+              "keyName": "staff_message_id",
+              "condition": "eq",
+              "keyValue": "={{$node[\"Telegram Trigger\"].json[\"message\"][\"reply_to_message\"][\"message_id\"]}}"
+            },
+            {
+              "keyName": "status",
+              "condition": "eq",
+              "keyValue": "open"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -544,
+        -400
+      ],
+      "id": "81552ed2-448c-4b5e-8af5-4021a3d50f8a",
+      "name": "Get many rows1",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a9d7aaec-23e0-4791-bffd-780d0ef9bae7",
+              "name": "altegio_base",
+              "value": "https://api.alteg.io/api/v1",
+              "type": "string"
+            },
+            {
+              "id": "02c48c58-1e42-478b-a052-4039ccd883b5",
+              "name": "altegio_token",
+              "value": "Bearer 5wkt4m4skaukk462f62a",
+              "type": "string"
+            },
+            {
+              "id": "14ddae91-67e0-4f91-a953-888572b9dfe9",
+              "name": "altegio_accept",
+              "value": "application/vnd.api.v2+json",
+              "type": "string"
+            },
+            {
+              "id": "fc1677cd-231e-4407-8b73-02e2cbc62f92",
+              "name": "company_id",
+              "value": "<ALTEGIO_COMPANY_ID>",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        416,
+        -672
+      ],
+      "id": "97826dd9-5200-4bbb-86d0-d3ab7c0c9e7a",
+      "name": "Altegio Config"
+    },
+    {
+      "parameters": {
+        "url": "={{$json.altegio_base}}/staff/{{$json.company_id}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{$json.altegio_token}}"
+            },
+            {
+              "name": "Accept",
+              "value": "={{$json.altegio_accept}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        624,
+        -672
+      ],
+      "id": "1f47c88d-6d9f-493c-a72b-b4bb180b90f3",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        832,
+        -672
+      ],
+      "id": "0342b985-7fd4-42d4-9194-844e365fe5a3",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "ba1fb0a6-29b3-45ee-8f0b-ce6c5ae15b80",
+              "leftValue": "{{ $json.id }}",
+              "rightValue": "<EXCLUDED_STAFF_ID>",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1200,
+        -656
+      ],
+      "id": "7d81795f-db3c-4cc0-95b7-e0ecf183faed",
+      "name": "If1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        2016,
+        -464
+      ],
+      "id": "47ffd4d3-aa38-40b8-b4d4-20a0a66b07b9",
+      "name": "No Operation, do nothing"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3d82942b-87f7-41b9-8f36-08a54e2032a3",
+              "name": "altegio_base",
+              "value": "https://api.alteg.io/api/v1",
+              "type": "string"
+            },
+            {
+              "id": "66f7d195-f650-40c5-844f-a299c4475ce7",
+              "name": "altegio_token",
+              "value": "Bearer 5wkt4m4skaukk462f62a",
+              "type": "string"
+            },
+            {
+              "id": "74707abb-b51b-454f-aab6-b73dd80dea79",
+              "name": "altegio_accept",
+              "value": "application/vnd.api.v2+json",
+              "type": "string"
+            },
+            {
+              "id": "33690fd1-7033-4174-8f8f-9faf8a050175",
+              "name": "company_id",
+              "value": "<ALTEGIO_COMPANY_ID>",
+              "type": "string"
+            },
+            {
+              "id": "2e257f23-ad5a-424e-b4a7-70ec4bbb299e",
+              "name": "master_name",
+              "value": "={{$json.name}}",
+              "type": "string"
+            },
+            {
+              "id": "6f6def67-2ca1-4733-bc94-b0c249988254",
+              "name": "date",
+              "value": "={{$json.date}}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1632,
+        -800
+      ],
+      "id": "8de80c1a-5cab-4ae2-81c7-c15f552ff9d0",
+      "name": "CRM Params (date)"
+    },
+    {
+      "parameters": {
+        "url": "={{$json.altegio_base}}/book_times/{{$json.company_id}}/{{$json.id}}/{{$json.date}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{$json.altegio_token}}"
+            },
+            {
+              "name": "Accept",
+              "value": "={{$json.altegio_accept}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1792,
+        -800
+      ],
+      "id": "c91cd30a-2a96-416e-96de-5a934e31b4ac",
+      "name": "Altegio - Get Book Times",
+      "alwaysOutputData": false,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ef141897-c7f9-43df-8dbf-5179d0adf319",
+              "name": "slots_text",
+              "value": "={{ ($json.data ?? []).map(s => s.time).join(', ') }}",
+              "type": "string"
+            },
+            {
+              "id": "d9469db0-12e3-417b-b695-64974e8c1fb3",
+              "name": "master_line",
+              "value": "={{ $json.master_name }}: {{ $json.slots_text }}",
+              "type": "string"
+            },
+            {
+              "id": "67670f5d-1a71-4ad3-af7a-e2b797068d3b",
+              "name": "master_line",
+              "value": "={{ $json.master_name + ': ' + (($json.data ?? []).map(s => s.time).join(', ')) }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2672,
+        -832
+      ],
+      "id": "ec907f30-ca77-4f65-9ae3-2c90bbd0c2f9",
+      "name": "Format Slots For Master"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0b719adb-ee4b-4566-bac8-af72b68f0a6f",
+              "name": "master_name",
+              "value": "={{ $items(\"CRM Params (date)\")[$itemIndex].json.master_name }}",
+              "type": "string"
+            },
+            {
+              "id": "d0b424a2-7668-4fc3-aed1-11bbabbd8169",
+              "name": "slots_count",
+              "value": "={{ $json.data?.length ?? 0 }}",
+              "type": "number"
+            },
+            {
+              "id": "26cb750e-cf3c-469b-92bf-b24f8071c71f",
+              "name": "has_slots",
+              "value": "={{ ($json.data?.length ?? 0) > 0 }}",
+              "type": "boolean"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2176,
+        -816
+      ],
+      "id": "c0026a4b-2035-40fd-a852-22356f846ed9",
+      "name": "Debug Slots Count"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "ed7440bc-3d0d-44ff-931c-26be7818259a",
+              "leftValue": "={{$json.slots_count}}",
+              "rightValue": "=0",
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2384,
+        -816
+      ],
+      "id": "ce89ffd0-51cd-4faf-87a2-1ce463d5ed0a",
+      "name": "IF Has Slots (slots_count > 0)"
+    },
+    {
+      "parameters": {
+        "jsCode": "const lines = items\n  .map(i => i.json.master_line)\n  .filter(v => typeof v === 'string' && v.trim().length > 0);\n\nconst rawDate = $items(\"CRM Params (date)\")[0]?.json?.date ?? \"\";\nconst date = String(rawDate).trim();\n\nreturn [{\n  json: {\n    date,\n    master_lines: lines.join('\\n'),\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2880,
+        -832
+      ],
+      "id": "9a723763-1f0a-4ce8-b604-62de7d1e2c6e",
+      "name": "Join Master Lines"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ba85bb8d-182b-4790-bd6f-891398d9a1d1",
+              "name": "reply_text",
+              "value": "={{ \n  'Ось вільні віконця на ' + $json.date + ':\\n\\n' +\n  ($json.master_lines || 'На жаль, вільних віконець на цю дату немає.')\n}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3072,
+        -832
+      ],
+      "id": "7f6674fb-333d-45f9-b6a9-96fcbdba8913",
+      "name": "Compose Reply Text"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e41e27bd-76c5-4388-8124-65891e2c1941",
+              "name": "text",
+              "value": "={{ $('Set Final Text').item.json.text }}",
+              "type": "string"
+            },
+            {
+              "id": "39d03b17-53d9-4f75-97f3-cbeaed6c38b3",
+              "name": "service_tag",
+              "value": "={{ $json.service_tag }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -16,
+        -672
+      ],
+      "id": "d4ee1bfa-d1be-4fcb-aab4-500abf43cd8d",
+      "name": "CRM Input"
+    },
+    {
+      "parameters": {
+        "jsCode": "// service_tag пришёл из основного потока и лежит в CRM Input\nconst tag = ($('CRM Input').item.json.service_tag ?? 'unknown').toLowerCase();\n\n// Получаем всех мастеров после Split Out\nconst items = $input.all();\n\nfunction norm(s) {\n  return (s ?? '').toString().toLowerCase();\n}\n\nfunction isAnna(name) {\n  // на всякий случай, даже если If1 уже фильтрует\n  const n = norm(name);\n  return n.includes('анна');\n}\n\nfunction matchesTag(name) {\n  const n = norm(name);\n\n  // owner исключаем всегда\n  if (isAnna(n)) return false;\n\n  // если услуга не распознана — показываем всех (кроме Анны)\n  if (tag === 'unknown') return true;\n\n  if (tag === 'massage') {\n    return n.includes('олександр') || n.includes('александр');\n  }\n\n  if (tag === 'brows_lashes') {\n    return n.includes('наталя') || n.includes('натал');\n  }\n\n  if (tag === 'manicure') {\n    return n.includes('марія') || n.includes('мария') || n.includes('аліна') || n.includes('алина');\n  }\n\n  return true;\n}\n\nconst out = items.filter(it => matchesTag(it.json.name));\n\nreturn out;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        992,
+        -672
+      ],
+      "id": "87a2645e-1b21-4e0d-bb30-cba380475d0a",
+      "name": "Filter Staff By Tag"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "2be0717b-c2f9-4522-8a9e-826ccfd04291",
+              "leftValue": "={{ $json.service_tag }}",
+              "rightValue": "unknown",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        192,
+        -672
+      ],
+      "id": "c21c051b-cb92-4dc9-ac6c-79aaba348337",
+      "name": "IF service unknown"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0a1e10fd-78f4-4deb-b085-53e1505b76a4",
+              "name": "message",
+              "value": "Підкажіть, будь ласка, яка саме послуга вас цікавить? 😊\n• манікюр / педикюр\n• брови / вії\n• масаж\nІ на яку дату хочете записатися?\n",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        320,
+        -512
+      ],
+      "id": "a2384c10-4543-4656-b3d6-83d651412300",
+      "name": "Ask Service"
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = ( $('CRM Input').item.json.text ?? '' ).toString().toLowerCase();\n\n// нормализуем пробелы/символы из Telegram (NBSP и др.)\nconst clean = text\n  .normalize('NFKC')\n  .replace(/\\u00a0/g, ' ')\n  .replace(/\\s+/g, ' ')\n  .trim();\n\nfunction pad2(n){ return String(n).padStart(2, '0'); }\nfunction ymd(d){ return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; }\nfunction addDays(d, days){ const x = new Date(d); x.setDate(x.getDate() + days); return x; }\n\nconst months = {\n  \"січня\": 1, \"сiчня\": 1, \"лютого\": 2, \"березня\": 3, \"квітня\": 4, \"квiтня\": 4,\n  \"травня\": 5, \"червня\": 6, \"липня\": 7, \"серпня\": 8, \"вересня\": 9, \"жовтня\": 10,\n  \"листопада\": 11, \"грудня\": 12,\n  \"января\": 1, \"февраля\": 2, \"марта\": 3, \"апреля\": 4, \"мая\": 5, \"июня\": 6,\n  \"июля\": 7, \"августа\": 8, \"сентября\": 9, \"октября\": 10, \"ноября\": 11, \"декабря\": 12,\n};\n\nconst weekdays = {\n  \"неділя\": 0, \"недiля\": 0,\n  \"понеділок\": 1, \"понедiлок\": 1,\n  \"вівторок\": 2, \"вiвторок\": 2,\n  \"середа\": 3,\n  \"четвер\": 4,\n  \"пʼятниця\": 5, \"п'ятниця\": 5,\n  \"субота\": 6,\n  \"воскресенье\": 0,\n  \"понедельник\": 1,\n  \"вторник\": 2,\n  \"среда\": 3,\n  \"четверг\": 4,\n  \"пятница\": 5,\n  \"суббота\": 6,\n};\n\nfunction nextWeekday(fromDate, targetDow) {\n  const d = new Date(fromDate);\n  const current = d.getDay();\n  let delta = (targetDow - current + 7) % 7;\n  if (delta === 0) delta = 7;\n  d.setDate(d.getDate() + delta);\n  return d;\n}\n\nfunction bestDayOfMonth(fromDate, dayNum) {\n  const y = fromDate.getFullYear();\n  const m = fromDate.getMonth();\n  const cand = new Date(y, m, dayNum);\n  if (cand.getMonth() !== m) return null;\n\n  const todayStart = new Date(y, m, fromDate.getDate());\n  if (cand >= todayStart) return cand;\n\n  const next = new Date(y, m + 1, dayNum);\n  const expectedMonth = (m + 1) % 12;\n  if (next.getMonth() !== expectedMonth) return null;\n  return next;\n}\n\nconst now = new Date();\nlet parsedDate = null;\nlet date_reason = \"\";\nlet m;\n\n// 1) ISO (оставляем \\b — тут только цифры)\nm = clean.match(/\\b(20\\d{2})-(\\d{1,2})-(\\d{1,2})\\b/);\nif (m) { parsedDate = `${m[1]}-${pad2(m[2])}-${pad2(m[3])}`; date_reason = \"iso\"; }\n\n// 2) numeric (оставляем \\b — тут только цифры)\nif (!parsedDate) {\n  m = clean.match(/\\b(\\d{1,2})[.\\-/](\\d{1,2})(?:[.\\-/](20\\d{2}))?\\b/);\n  if (m) {\n    const yy = m[3] ? m[3] : String(now.getFullYear());\n    parsedDate = `${yy}-${pad2(m[2])}-${pad2(m[1])}`;\n    date_reason = \"numeric\";\n  }\n}\n\n// 3) month name (ВАЖНО: без \\b!)\nif (!parsedDate) {\n  m = clean.match(/(\\d{1,2})\\s+([a-zа-яіїєё]+)(?:\\s+(20\\d{2}))?/i);\n  if (m) {\n    const mmNum = months[m[2].toLowerCase()];\n    if (mmNum) {\n      const yy = m[3] ? m[3] : String(now.getFullYear());\n      parsedDate = `${yy}-${pad2(mmNum)}-${pad2(m[1])}`;\n      date_reason = \"month_name\";\n    }\n  }\n}\n\n// 4) today/tomorrow/after (без \\b!)\nif (!parsedDate) {\n  if (/(сьогодні|сегодня)/i.test(clean)) { parsedDate = ymd(now); date_reason = \"today\"; }\n  else if (/завтра/i.test(clean)) { parsedDate = ymd(addDays(now, 1)); date_reason = \"tomorrow\"; }\n  else if (/(післязавтра|послезавтра)/i.test(clean)) { parsedDate = ymd(addDays(now, 2)); date_reason = \"after_tomorrow\"; }\n}\n\n// 5) in N days (без \\b!)\nif (!parsedDate) {\n  m = clean.match(/через\\s*(\\d{1,2})\\s*(дн[іi]|дні|дни|дня|дней)/i);\n  if (m) { parsedDate = ymd(addDays(now, parseInt(m[1],10))); date_reason = \"in_n_days\"; }\n}\n\n// 6) weekday (без \\b!)\nif (!parsedDate) {\n  m = clean.match(/(неділя|недiля|понеділок|понедiлок|вівторок|вiвторок|середа|четвер|пʼятниця|п'ятниця|субота|воскресенье|понедельник|вторник|среда|четверг|пятница|суббота)/i);\n  if (m) {\n    const dow = weekdays[m[1].toLowerCase()];\n    if (dow !== undefined) {\n      parsedDate = ymd(nextWeekday(now, dow));\n      date_reason = \"weekday\";\n    }\n  }\n}\n\n// 7) day of month: \"на 13\" (без \\b!)\nif (!parsedDate) {\n  m = clean.match(/на\\s*(\\d{1,2})\\s*(число)?/i);\n  if (m) {\n    const d = bestDayOfMonth(now, parseInt(m[1],10));\n    if (d) { parsedDate = ymd(d); date_reason = \"day_of_month\"; }\n  }\n}\n\n// fallback tomorrow\nif (!parsedDate) { parsedDate = ymd(addDays(now, 1)); date_reason = \"fallback_tomorrow\"; }\n\nreturn $input.all().map(it => ({\n  json: {\n    ...it.json,\n    date: parsedDate,\n    date_reason,\n    client_text: clean,\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1424,
+        -800
+      ],
+      "id": "5e4d3b2a-9f44-4a23-a769-8ac2fb9a47eb",
+      "name": "Parse Date"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ ($json.text ?? $json.message?.text ?? $json.message ?? \"\").toLowerCase() }}",
+                    "rightValue": "(вікон|віконц|окош|вільн|свободн|коли\\s*є|когда\\s*есть)",
+                    "operator": {
+                      "type": "string",
+                      "operation": "regex"
+                    },
+                    "id": "e86244fe-6bba-4826-bce4-663af051241f"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "5b031569-32bd-4c8e-908f-05970abae756",
+                    "leftValue": "={{ ($json.text ?? $json.message?.text ?? $json.message ?? \"\").toLowerCase() }}",
+                    "rightValue": "(запис|запиш|запишіть|записат|записатися|записаться|хочу\\s*запис|запись|запишите|book|appointment)",
+                    "operator": {
+                      "type": "string",
+                      "operation": "regex"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "839c9447-a4bf-4836-84b7-acfe26ec60d3",
+                    "leftValue": "={{ ($json.text ?? $json.message?.text ?? $json.message ?? \"\").toLowerCase() }}",
+                    "rightValue": "(^|[^а-яіїєёa-z])(скас|відмін|отмен|удал|cancel)($|[^а-яіїєёa-z])",
+                    "operator": {
+                      "type": "string",
+                      "operation": "regex"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "6e6649de-d47a-4bd4-871d-d7b08c0e3d3a",
+                    "leftValue": "={{ ($json.text ?? $json.message?.text ?? $json.message ?? \"\").toLowerCase() }}",
+                    "rightValue": "(^|[^а-яіїєёa-z])(перен|перезапис|змін|измен|resched|move)($|[^а-яіїєёa-z])",
+                    "operator": {
+                      "type": "string",
+                      "operation": "regex"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -320,
+        288
+      ],
+      "id": "075c7f1a-85db-4701-878d-66159c6b860c",
+      "name": "Route Booking Action"
+    },
+    {
+      "parameters": {
+        "tableId": "chat_logs",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "session_id",
+              "fieldValue": "={{ $json.sessionId }}"
+            },
+            {
+              "fieldId": "user_id",
+              "fieldValue": "={{ $json.user_id || $json.message.from.id }}"
+            },
+            {
+              "fieldId": "username",
+              "fieldValue": "={{ $json.username || $json.message.from.username }}"
+            },
+            {
+              "fieldId": "role",
+              "fieldValue": "user"
+            },
+            {
+              "fieldId": "content",
+              "fieldValue": "={{ $json.text }}"
+            },
+            {
+              "fieldId": "metadata",
+              "fieldValue": "={{ JSON.stringify($json) }}"
+            },
+            {
+              "fieldId": "first_name",
+              "fieldValue": "={{ $json.first_name || $json.message.from.first_name }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -144,
+        16
+      ],
+      "id": "c15c18cb-2f20-4a1e-92a8-7bf82d234afa",
+      "name": "Save User Message AVAILABILITY"
+    },
+    {
+      "parameters": {
+        "tableId": "chat_logs",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "session_id",
+              "fieldValue": "={{ $json.sessionId }}"
+            },
+            {
+              "fieldId": "user_id",
+              "fieldValue": "={{ $json.user_id || $json.message.from.id }}"
+            },
+            {
+              "fieldId": "username",
+              "fieldValue": "={{ $json.username || $json.message.from.username }}"
+            },
+            {
+              "fieldId": "role",
+              "fieldValue": "user"
+            },
+            {
+              "fieldId": "content",
+              "fieldValue": "={{ $json.text }}"
+            },
+            {
+              "fieldId": "metadata",
+              "fieldValue": "={{ JSON.stringify($json) }}"
+            },
+            {
+              "fieldId": "first_name",
+              "fieldValue": "={{ $json.first_name || $json.message.from.first_name }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -112,
+        432
+      ],
+      "id": "a23db909-eed6-4cc2-9c29-e780aaa1edf6",
+      "name": "Save User Message CREATE"
+    },
+    {
+      "parameters": {
+        "tableId": "chat_logs",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "session_id",
+              "fieldValue": "={{ $json.sessionId }}"
+            },
+            {
+              "fieldId": "user_id",
+              "fieldValue": "={{ $json.user_id || $json.message.from.id }}"
+            },
+            {
+              "fieldId": "username",
+              "fieldValue": "={{ $json.username || $json.message.from.username }}"
+            },
+            {
+              "fieldId": "role",
+              "fieldValue": "user"
+            },
+            {
+              "fieldId": "content",
+              "fieldValue": "={{ $json.text }}"
+            },
+            {
+              "fieldId": "metadata",
+              "fieldValue": "={{ JSON.stringify($json) }}"
+            },
+            {
+              "fieldId": "first_name",
+              "fieldValue": "={{ $json.first_name || $json.message.from.first_name }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -96,
+        624
+      ],
+      "id": "304ebf9e-a2cd-4fb5-ba9d-cb0b04c80cbf",
+      "name": "Save User Message CANCEL"
+    },
+    {
+      "parameters": {
+        "tableId": "chat_logs",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "session_id",
+              "fieldValue": "={{ $json.sessionId }}"
+            },
+            {
+              "fieldId": "user_id",
+              "fieldValue": "={{ $json.user_id || $json.message.from.id }}"
+            },
+            {
+              "fieldId": "username",
+              "fieldValue": "={{ $json.username || $json.message.from.username }}"
+            },
+            {
+              "fieldId": "role",
+              "fieldValue": "user"
+            },
+            {
+              "fieldId": "content",
+              "fieldValue": "={{ $json.text }}"
+            },
+            {
+              "fieldId": "metadata",
+              "fieldValue": "={{ JSON.stringify($json) }}"
+            },
+            {
+              "fieldId": "first_name",
+              "fieldValue": "={{ $json.first_name || $json.message.from.first_name }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -96,
+        832
+      ],
+      "id": "e7033482-c5e3-4444-954a-a6c7e1e1a646",
+      "name": "Save User Message RESCHEDULE"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b92edf45-2d95-424d-a85a-2f58190a4e1e",
+              "name": "crm_mode",
+              "value": "availability",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        96
+      ],
+      "id": "27b1a104-8d70-4d08-a060-44001f01170f",
+      "name": "Set Mode - AVAILABILITY"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ab15993d-b3ec-41fe-8bdf-22cc8841fd5a",
+              "name": "crm_mode",
+              "value": "create",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        48,
+        432
+      ],
+      "id": "b9818179-20e2-4261-a258-4121e7f1d660",
+      "name": "Set Mode - CREATE"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "45bb692b-8888-4949-baaf-5f378d998cbd",
+              "name": "booking_stage",
+              "value": "await_time",
+              "type": "string"
+            },
+            {
+              "id": "153c27f5-4e5f-4a30-9f74-9b72d2bfc947",
+              "name": "pending_date",
+              "value": "={{ $json.date }}",
+              "type": "string"
+            },
+            {
+              "id": "4fd4b52c-8b61-42f2-85c2-171e3c44f78b",
+              "name": "pending_service_tag",
+              "value": "={{ $json.service_tag }}",
+              "type": "string"
+            },
+            {
+              "id": "c705f8f6-450b-4d27-a40c-c5546d174ff8",
+              "name": "pending_staff_id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2000,
+        -928
+      ],
+      "id": "1fe3b841-897c-438f-bd86-f00631353388",
+      "name": "Set Pending - Create",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$json.altegio_base}}/book_record/{{$json.company_id}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{$json.altegio_token}}"
+            },
+            {
+              "name": "Accept",
+              "value": "={{$json.altegio_accept}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"phone\": \"{{$json.client_phone}}\",\n  \"fullname\": \"{{$json.client_name}}\",\n  \"appointments\": [\n    {\n      \"id\": 1,\n      \"staff_id\": {{$json.staff_id}},\n      \"datetime\": \"{{$json.slot_datetime}}\"\n    }\n  ],\n  \"comment\": \"Telegram bot demo\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        160,
+        -1088
+      ],
+      "id": "88f3fb37-5bc3-44d8-9ec3-3b713964d6be",
+      "name": ") Altegio - Create Booking (HTTP Request)"
+    },
+    {
+      "parameters": {
+        "method": "DELETE",
+        "url": "={{$json.altegio_base}}/user/records/{{$json.record_id}}/{{$json.record_hash}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{$json.altegio_token}}"
+            },
+            {
+              "name": "Accept",
+              "value": "={{$json.altegio_accept}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        416,
+        -1088
+      ],
+      "id": "c1e6c840-e5b1-4cc8-bc66-242bbb8f393f",
+      "name": "Altegio - Cancel Booking (HTTP Request)"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "={{$json.altegio_base}}/book_record/{{$json.company_id}}/{{$json.record_id}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{$json.altegio_token}}"
+            },
+            {
+              "name": "Accept",
+              "value": "={{$json.altegio_accept}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"datetime\": \"{{$json.new_slot_datetime}}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        688,
+        -1088
+      ],
+      "id": "fc28123d-e87b-4ead-9091-cc093213fdf9",
+      "name": "Altegio - Reschedule Booking (HTTP Request)"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "это сообщение из staff-чата?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Download File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set Final Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download File": {
+      "main": [
+        [
+          {
+            "node": "Transcribe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe": {
+      "main": [
+        [
+          {
+            "node": "Set Final Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI": {
+      "ai_embedding": [
+        [
+          {
+            "node": "DATA BASE",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Response": {
+      "main": [
+        [
+          {
+            "node": "Save Bot Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ИНФО АГЕНТ": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DATA BASE": {
+      "ai_vectorStore": [
+        [
+          {
+            "node": "DATA_TOOL",
+            "type": "ai_vectorStore",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DATA_TOOL": {
+      "ai_tool": [
+        [
+          {
+            "node": "ИНФО АГЕНТ",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ВРЕМЕННАЯ ПАМЯТЬ 1": {
+      "ai_memory": [
+        [
+          {
+            "node": "ИНФО АГЕНТ",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Final Text": {
+      "main": [
+        [
+          {
+            "node": "Route Booking Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4o-mini": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "DATA_TOOL",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "ИНФО АГЕНТ",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "CRM Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message": {
+      "main": [
+        [
+          {
+            "node": "Create a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a row": {
+      "main": [
+        [
+          {
+            "node": "Send a text message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message1": {
+      "main": [
+        [
+          {
+            "node": "Update a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update a row": {
+      "main": [
+        []
+      ]
+    },
+    "Send a text message2": {
+      "main": [
+        [
+          {
+            "node": "Update a row1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "это сообщение из staff-чата?": {
+      "main": [
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2": {
+      "main": [
+        [
+          {
+            "node": "Get many rows1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Operation, do nothing1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many rows1": {
+      "main": [
+        [
+          {
+            "node": "Send a text message2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update a row1": {
+      "main": [
+        []
+      ]
+    },
+    "Altegio Config": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Filter Staff By Tag",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Parse Date",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CRM Params (date)": {
+      "main": [
+        [
+          {
+            "node": "Altegio - Get Book Times",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Altegio - Get Book Times": {
+      "main": [
+        [
+          {
+            "node": "Set Pending - Create",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Debug Slots Count": {
+      "main": [
+        [
+          {
+            "node": "IF Has Slots (slots_count > 0)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Has Slots (slots_count > 0)": {
+      "main": [
+        [
+          {
+            "node": "Format Slots For Master",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Slots For Master": {
+      "main": [
+        [
+          {
+            "node": "Join Master Lines",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Join Master Lines": {
+      "main": [
+        [
+          {
+            "node": "Compose Reply Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CRM Input": {
+      "main": [
+        [
+          {
+            "node": "IF service unknown",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Staff By Tag": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF service unknown": {
+      "main": [
+        [
+          {
+            "node": "Ask Service",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Altegio Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ask Service": {
+      "main": [
+        [
+          {
+            "node": "Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Date": {
+      "main": [
+        [
+          {
+            "node": "CRM Params (date)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compose Reply Text": {
+      "main": [
+        [
+          {
+            "node": "Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Booking Action": {
+      "main": [
+        [
+          {
+            "node": "Save User Message AVAILABILITY",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Save User Message CREATE",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Save User Message CANCEL",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Save User Message RESCHEDULE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save User Message AVAILABILITY": {
+      "main": [
+        [
+          {
+            "node": "Typing 1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Set Mode - AVAILABILITY",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save User Message CREATE": {
+      "main": [
+        [
+          {
+            "node": "Set Mode - CREATE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Mode - AVAILABILITY": {
+      "main": [
+        [
+          {
+            "node": "ИНФО АГЕНТ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Mode - CREATE": {
+      "main": [
+        [
+          {
+            "node": "ИНФО АГЕНТ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Pending - Create": {
+      "main": [
+        [
+          {
+            "node": "Debug Slots Count",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "tags": []
+}
