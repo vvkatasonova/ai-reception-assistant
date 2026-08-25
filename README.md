@@ -6,6 +6,10 @@ AI-powered virtual administrator designed to automate customer communication for
 
 The system understands text and voice messages, answers customer questions according to predefined business rules, helps collect appointment-related information, and can transfer important requests to a human manager when needed.
 
+## Workflow
+
+![n8n workflow](workflow.png)
+
 ## Business Problem
 
 Beauty salons often spend a lot of time answering repetitive customer questions, handling appointment requests manually, and coordinating communication between clients and administrators.
