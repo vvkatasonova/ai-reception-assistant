@@ -1,46 +1,59 @@
 # AI Virtual Administrator for Beauty Salon
 
-## Overview
+An n8n-based Telegram assistant I built to automate repetitive communication between a beauty salon and its customers.
 
-AI-powered virtual administrator designed to automate customer communication for a beauty salon through Telegram.
-
-The system understands text and voice messages, answers customer questions according to predefined business rules, helps collect appointment-related information, and can transfer important requests to a human manager when needed.
+The workflow accepts both text and voice messages, uses an LLM to generate responses according to predefined salon rules, collects appointment-related information and can escalate a conversation to a human manager when needed.
 
 ## Workflow
 
 ![n8n workflow](workflow.png)
 
-## Business Problem
+The main flow is:
 
-Beauty salons often spend a lot of time answering repetitive customer questions, handling appointment requests manually, and coordinating communication between clients and administrators.
+Telegram message  
+→ n8n processing  
+→ AI response logic  
+→ customer reply
 
-## Solution
+If the request requires human involvement, the workflow forwards it to a manager and returns the manager's answer back to the customer.
 
-This project is a no-code AI automation workflow that acts as the first point of contact for customers.
+## Demo
 
-The system can:
+[Watch the demo](demo.mp4)
 
-- understand text and voice messages;
-- communicate in multiple languages;
-- answer questions strictly according to predefined instructions;
-- collect important client information;
-- forward important requests to a management chat;
-- send the manager's response back to the client;
-- reduce manual communication while keeping responses clear and consistent.
+## What it can do
 
-## My Role
+- process text and voice messages;
+- answer common customer questions;
+- work in multiple languages;
+- follow predefined business instructions;
+- collect information needed for an appointment;
+- escalate selected requests to a manager;
+- return the manager's response to the customer.
 
-Designed and implemented the complete automation workflow independently.
+## Why I built it
 
-Responsibilities included:
+A large part of salon communication consists of repetitive questions about services, prices, availability and appointments.
 
-- workflow architecture;
-- AI prompt design;
-- Telegram bot integration;
-- OpenAI integration;
-- message routing logic;
-- automation scenario design;
-- testing and optimization.
+I wanted to test whether this part of customer communication could be automated without removing the possibility of human intervention when it is actually needed.
+
+## Implementation
+
+The workflow was built in n8n and integrates:
+
+- Telegram Bot API
+- OpenAI API
+- message routing and branching logic
+- prompt-based response rules
+- human handoff logic
+
+The exported n8n workflow is available here:
+
+[`telegram_virtual_admin_workflow.json`](telegram_virtual_admin_workflow.json)
+
+## My role
+
+I designed and built the workflow independently, including its structure, prompts, Telegram integration, routing logic and testing.
 
 ## Technologies
 
@@ -48,15 +61,10 @@ Responsibilities included:
 - OpenAI API
 - Telegram Bot API
 - Prompt Engineering
-- AI Workflow Automation
+- Workflow Automation
 
-## Planned Improvements
+## Status
 
-- CRM integration
-- automatic appointment scheduling;
-- customer database synchronization;
-- analytics dashboard.
+This is an independent prototype.
 
-## Note
-
-This is a personal practice project. Client-specific data is not used or published.
+The current version demonstrates the complete communication flow. Possible next steps include appointment-calendar integration and persistent customer data storage.
